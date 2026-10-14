@@ -5,92 +5,105 @@ import yfinance as yf
 
 # --- CONFIGURAÇÃO DA PÁGINA ---
 st.set_page_config(
-    page_title="Scorpion Finance | Dashboard", page_icon="⚡", layout="wide"
+    page_title="Scorpion Finance | Radar de Mercado",
+    page_icon="⚡",
+    layout="wide",
 )
 
-# Estilização CSS Customizada para Visual Agressivo/Dark Mode
+# --- CSS CUSTOMIZADO (Design Limpo, Elegante e Profissional) ---
 st.markdown(
     """
     <style>
+    /* Fundo da aplicação */
     .stApp {
-        background-color: #0E1117;
-        color: #FFFFFF;
+        background-color: #0d1117;
+        color: #c9d1d9;
     }
-    div[data-testid="stMetricValue"] {
-        font-size: 28px;
-        font-weight: bold;
-        color: #00FF66;
+    
+    /* Cabeçalhos */
+    h1 {
+        color: #58a6ff !important;
+        font-weight: 700;
     }
+    h2, h3 {
+        color: #3fb950 !important;
+    }
+    
+    /* Caixas de métricas */
     div[data-testid="stMetric"] {
-        background-color: #161B22;
-        border: 1px solid #30363D;
-        padding: 15px;
-        border-radius: 10px;
+        background-color: #161b22;
+        border: 1px solid #30363d;
+        padding: 12px;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.2);
     }
-    h1, h2, h3 {
-        color: #00FF66 !important;
-        font-family: 'Trebuchet MS', sans-serif;
+    
+    div[data-testid="stMetricValue"] {
+        color: #58a6ff !important;
+        font-size: 22px !important;
+        font-weight: bold;
+    }
+    
+    div[data-testid="stMetricLabel"] {
+        color: #8b949e !important;
+        font-size: 14px !important;
+    }
+
+    /* Ajuste para Caixas de Seleção e Inputs */
+    div[data-baseweb="select"] > div {
+        background-color: #161b22 !important;
+        color: #f0f6fc !important;
+        border-color: #30363d !important;
     }
     </style>
 """,
     unsafe_allow_html=True,
 )
 
+# --- TÍTULO DO DASHBOARD ---
 st.title("⚡ SCORPION FINANCE — RADAR DE MERCADO")
 st.caption(
-    f"🌐 Inteligência em Dados Financeiros | Última atualização:"
+    f"🌐 Inteligência e Análise Financeira em Tempo Real | Atualizado em:"
     f" {datetime.now().strftime('%d/%m/%Y %H:%M')}"
 )
 
-# --- DICIONÁRIO DE ATIVOS EXPANDIDO ---
+# --- DICIONÁRIO DE ATIVOS ---
 categorias_ativos = {
-    "Criptomoedas (R$)": {
-        "Bitcoin (R$)": "BTC-BRL",
-        "Ethereum (R$)": "ETH-BRL",
-        "Solana (R$)": "SOL-BRL",
-        "Cardano (R$)": "ADA-BRL",
-    },
     "Ações Brasileiras (B3)": {
-        "Petrobras PN": "PETR4.SA",
-        "Petrobras ON": "PETR3.SA",
-        "Vale": "VALE3.SA",
-        "Itaú Unibanco": "ITUB4.SA",
-        "Bradesco": "BBDC4.SA",
-        "Banco do Brasil": "BBAS3.SA",
-        "B3 SA": "B3SA3.SA",
-        "WEG": "WEGE3.SA",
-        "Magazine Luiza": "MGLU3.SA",
-        "Ambev": "ABEV3.SA",
-        "Eletrobras": "ELET3.SA",
-        "Localiza": "RENT3.SA",
+        "Petrobras (PETR4)": "PETR4.SA",
+        "Vale (VALE3)": "VALE3.SA",
+        "Itaú Unibanco (ITUB4)": "ITUB4.SA",
+        "Bradesco (BBDC4)": "BBDC4.SA",
+        "Banco do Brasil (BBAS3)": "BBAS3.SA",
+        "Eletrobras (ELET3)": "ELET3.SA",
+        "Magazine Luiza (MGLU3)": "MGLU3.SA",
     },
-    "Índices Globais": {
-        "Ibovespa (Brasil)": "^BVSP",
-        "S&P 500 (EUA)": "^GSPC",
-        "Nasdaq (Tech EUA)": "^IXIC",
-        "Dow Jones": "^DJI",
+    "Criptomoedas (R$)": {
+        "Bitcoin (BTC)": "BTC-BRL",
+        "Ethereum (ETH)": "ETH-BRL",
+        "Solana (SOL)": "SOL-BRL",
     },
-    "Câmbio": {
+    "Índices & Câmbio": {
+        "Ibovespa": "^BVSP",
+        "S&P 500": "^GSPC",
         "Dólar Comercial": "BRL=X",
         "Euro": "EURBRL=X",
-        "Libra Esterlina": "GBPBRL=X",
     },
     "Commodities": {
         "Ouro": "GC=F",
-        "Petróleo BRENT": "BZ=F",
-        "Milho": "ZC=F",
-        "Soja": "ZS=F",
+        "Petróleo Brent": "BZ=F",
         "Café Arábica": "KC=F",
+        "Milho": "ZC=F",
     },
 }
 
 # --- BARRA LATERAL ---
-st.sidebar.header("⚙️ Painel de Controle")
+st.sidebar.header("⚙️ Filtros do Painel")
 categoria_sel = st.sidebar.selectbox(
-    "Escolha o Mercado", list(categorias_ativos.keys())
+    "Selecione a Categoria", list(categorias_ativos.keys())
 )
 periodo_sel = st.sidebar.selectbox(
-    "Período Histórico",
+    "Período Gráfico",
     ["1mo", "3mo", "6mo", "1y"],
     format_func=lambda x: {
         "1mo": "1 Mês",
@@ -100,55 +113,67 @@ periodo_sel = st.sidebar.selectbox(
     }[x],
 )
 
-# --- CARDS DE INDICADORES ---
+# --- DESTAQUES DO MERCADO ---
 st.subheader(f"📌 Destaques — {categoria_sel}")
-ativos_categoria = categorias_ativos[categoria_sel]
-cols = st.columns(len(ativos_categoria))
+ativos = categorias_ativos[categoria_sel]
+cols = st.columns(min(len(ativos), 4))
 
-for i, (nome, ticker) in enumerate(ativos_categoria.items()):
+for index, (nome, ticker) in enumerate(ativos.items()):
+  col_idx = index % 4
   try:
-    dados = yf.Ticker(ticker).history(period="5d")
-    if len(dados) >= 2:
-      atual = dados["Close"].iloc[-1]
-      anterior = dados["Close"].iloc[-2]
-      var = ((atual - anterior) / anterior) * 100
+    ticker_data = yf.Ticker(ticker)
+    df_recent = ticker_data.history(period="7d")
 
-      simbolo = "R$" if "BRL" in ticker or ".SA" in ticker else "US$"
-      with cols[i]:
-        st.metric(
-            label=nome, value=f"{simbolo} {atual:,.2f}", delta=f"{var:+.2f}%"
-        )
-  except Exception as e:
-    cols[i].write(f"Erro em {nome}")
+    if not df_recent.empty and len(df_recent) >= 2:
+      preco_atual = df_recent["Close"].iloc[-1]
+      preco_anterior = df_recent["Close"].iloc[-2]
+      variacao = ((preco_atual - preco_anterior) / preco_anterior) * 100
+
+      moeda = "R$" if ("BRL" in ticker or ".SA" in ticker) else "US$"
+      cols[col_idx].metric(
+          label=nome,
+          value=f"{moeda} {preco_atual:,.2f}",
+          delta=f"{variacao:+.2f}%",
+      )
+    else:
+      cols[col_idx].write(f"⚠️ {nome}: Indisponível")
+  except Exception:
+    cols[col_idx].write(f"⚠️ {nome}: Erro de busca")
 
 st.divider()
 
-# --- GRÁFICO DARK NEON COM MARGENS AJUSTADAS ---
-st.subheader("📈 Análise Gráfica Histórica")
+# --- ANÁLISE GRÁFICA HISTÓRICA ---
+st.subheader("📈 Gráfico de Desempenho")
 ativo_escolhido = st.selectbox(
-    "Selecione o Ativo para Análise:", list(ativos_categoria.keys())
+    "Escolha o ativo para visualização detalhada:", list(ativos.keys())
 )
-ticker_escolhido = ativos_categoria[ativo_escolhido]
+ticker_escolhido = ativos[ativo_escolhido]
 
-historico = yf.Ticker(ticker_escolhido).history(period=periodo_sel)
+try:
+  dados_grafico = yf.Ticker(ticker_escolhido).history(period=periodo_sel)
 
-if not historico.empty:
-  fig = px.area(
-      historico,
-      x=historico.index,
-      y="Close",
-      title=f"Evolução — {ativo_escolhido}",
-      labels={"Close": "Preço de Fechamento", "Date": "Data"},
-  )
-  fig.update_traces(line_color="#00FF66", fillcolor="rgba(0, 255, 102, 0.1)")
-  fig.update_layout(
-      paper_bgcolor="#0E1117",
-      plot_bgcolor="#161B22",
-      font_color="#FFFFFF",
-      margin=dict(t=50, b=40, l=40, r=40),
-      xaxis=dict(gridcolor="#30363D"),
-      yaxis=dict(gridcolor="#30363D", autorange=True),
-  )
-  st.plotly_chart(fig, use_container_width=True)
-else:
-  st.warning("Não foi possível carregar os dados deste ativo.")
+  if not dados_grafico.empty:
+    fig = px.line(
+        dados_grafico,
+        x=dados_grafico.index,
+        y="Close",
+        title=f"Histórico de Fechamento — {ativo_escolhido}",
+        labels={"Close": "Preço", "Date": "Data"},
+    )
+    fig.update_traces(line_color="#3fb950", line_width=2.5)
+    fig.update_layout(
+        paper_bgcolor="#0d1117",
+        plot_bgcolor="#161b22",
+        font_color="#c9d1d9",
+        xaxis=dict(gridcolor="#21262d", showgrid=True),
+        yaxis=dict(gridcolor="#21262d", showgrid=True, autorange=True),
+        margin=dict(l=40, r=40, t=50, b=40),
+    )
+    st.plotly_chart(fig, use_container_width=True)
+  else:
+    st.warning(
+        f"Não foram encontrados dados históricos para {ativo_escolhido} no"
+        " período selecionado."
+    )
+except Exception as err:
+  st.error(f"Erro ao carregar o gráfico: {err}")
